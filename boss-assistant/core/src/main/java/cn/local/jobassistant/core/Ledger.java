@@ -33,7 +33,7 @@ public final class Ledger {
     public static void account(JSONObject s,long now,long input,long output) {
         JSONObject u=usage(s,now),ai=J.object(s,"ai");
         J.put(u,"tokens",u.optLong("tokens")+Math.max(0,input)+Math.max(0,output));
-        J.put(u,"cost",u.optDouble("cost")+(Math.max(0,input)*ai.optDouble("inputPrice")+Math.max(0,output)*ai.optDouble("outputPrice"))/1000000.0);
+        J.put(u,"cost",u.optDouble("cost",0)+(Math.max(0,input)*ai.optDouble("inputPrice",0)+Math.max(0,output)*ai.optDouble("outputPrice",0))/1000000.0);
         JSONObject all=J.object(s,"usage"); J.put(all,day(now),u); J.put(s,"usage",all);
     }
     public static JSONObject backup(JSONObject s) { return J.obj("schema",1,"profile",J.copy(J.object(s,"profile")),"prefs",J.copy(J.object(s,"prefs")),"faq",J.array(J.copy(s),"faq")); }
