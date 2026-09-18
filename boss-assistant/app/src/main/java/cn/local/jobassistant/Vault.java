@@ -72,10 +72,10 @@ public final class Vault {
             // Import only documented fields; arbitrary backup content cannot change AI host or control bindings.
             JSONObject cleanProfile=J.obj();
             for(String k:MainActivity.PROFILE_FIELDS) if(profile.has(k)) J.put(cleanProfile,k,profile.optString(k));
-            if(prefs.optInt("dailyCalls",50)<1||prefs.optInt("dailyCalls",50)>500||prefs.optInt("dailyApplications",10)<1||prefs.optInt("dailyApplications",10)>100||prefs.optInt("intervalSeconds",20)<5) throw new IllegalArgumentException("备份限额不合法");
+            JSONObject cleanPrefs=Preferences.clean(prefs,true);
             JSONArray cleanFaq=new JSONArray();
             for(JSONObject f:J.list(faq)) if(f.optBoolean("approved")&&Arrays.asList(ReplyPolicy.CATEGORIES).contains(f.optString("category"))) cleanFaq.put(J.obj("id",UUID.randomUUID().toString(),"category",f.optString("category"),"question",f.optString("question"),"answer",f.optString("answer"),"approved",true));
-            update(s->{ J.put(s,"profile",cleanProfile);J.put(s,"prefs",prefs);J.put(s,"faq",cleanFaq); });
+            update(s->{ J.put(s,"profile",cleanProfile);J.put(s,"prefs",cleanPrefs);J.put(s,"faq",cleanFaq); });
         } finally { Arrays.fill(plain,(byte)0); }
     }
 }

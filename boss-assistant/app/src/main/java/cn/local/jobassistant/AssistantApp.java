@@ -14,6 +14,7 @@ public final class AssistantApp extends Application {
     public final ExecutorService io=Executors.newSingleThreadExecutor();
     public final Handler main=new Handler(Looper.getMainLooper());
     public Vault vault; public AiClient ai; public Engine engine;
+    public volatile long dataVersion;
     public String storageFailure="";public String notice="";
     private int foreground;
     @Override public void onCreate() {
@@ -28,6 +29,16 @@ public final class AssistantApp extends Application {
     }
     public void stop(RunGate.State state,String text) { gate.halt(state);ai.cancel();notice=text;changed();if(state!=RunGate.State.STOPPED)Notices.attention(this,text); }
     public void changed() { sendBroadcast(new Intent(getPackageName()+".CHANGED").setPackage(getPackageName())); }
+    public synchronized void clearLocalData() {
+        dataVersion++;
+        key.clear();stop(RunGate.State.STOPPED,"本地数据已清除");
+        Vault.erase(this);vault=new Vault(this);
+    }
+    @FunctionalInterface public interface DataWork { void run(Vault vault) throws Exception; }
+    public synchronized void withData(long version,DataWork work) throws Exception {
+        if(version!=dataVersion)throw new java.io.IOException("资料已清除，已取消旧操作");
+        work.run(vault);
+    }
     public void work(Callable<?> task,Runnable success) {
         io.execute(()->{try {task.call();main.post(()->{changed();if(success!=null)success.run();});}catch(Exception e){main.post(()->{notice=safeError(e);Notices.attention(this,notice);changed();});}});
     }

@@ -43,7 +43,7 @@ public final class BossService extends AccessibilityService {
     public void armJob(String id){armedJob=id;armedUntil=SystemClock.elapsedRealtime()+60000;}
     private String chatId(BossTree t){String hr=t.value(selector("chatHr")),company=t.value(selector("chatCompany")),job=t.value(selector("chatJob"));if(hr.isBlank()||company.isBlank()||job.isBlank())return "";return Ids.hash(hr,company,job);}
     private String incomingId(BossTree t){List<String> a=t.values(selector("incoming"));return a.isEmpty()?"":Ids.hash(a.toArray(new String[0]));}
-    private String latestHr(BossTree t){List<String>a=t.values(selector("incoming"));return a.isEmpty()?"":String.join("\n",a.subList(Math.max(0,a.size()-4),a.size()));}
+    private String latestHr(BossTree t){return String.join("\n",ChatWindow.incomingTurn(t.messages(selector("incoming"),selector("outgoing"))));}
     private void inspect(){
         if(app.vault==null)return;
         try(BossTree t=tree()){
@@ -96,11 +96,11 @@ public final class BossService extends AccessibilityService {
     }
     private void readChat(BossTree t,String id){
         String mid=incomingId(t),q=latestHr(t);if(mid.isEmpty()||q.isBlank())return;
-        JSONObject old=app.item("chats",id);if(mid.equals(old.optString("messageId")))return;
+        JSONObject old=app.item("chats",id);if(ChatWindow.seen(old,mid,q))return;
         // Preserve cumulative HR bubbles for burst handling. Require user-confirmed full context on first capture.
         app.vault.update(s->{JSONArray chats=J.array(s,"chats");JSONObject c=null;for(JSONObject x:J.list(chats))if(id.equals(x.optString("id")))c=x;
             if(c==null){c=J.obj("id",id,"hr",t.value(selector("chatHr")),"company",t.value(selector("chatCompany")),"title",t.value(selector("chatJob")),"contextConfirmed",false,"history",new JSONArray(),"audit",new JSONArray());chats.put(c);}
-            J.put(c,"messageId",mid);J.put(c,"lastHr",q);J.put(c,"time",System.currentTimeMillis());
+            ChatWindow.remember(c,mid);J.put(c,"messageId",mid);J.put(c,"lastHr",q);J.put(c,"time",System.currentTimeMillis());
             JSONArray h=J.array(c,"history");h.put(J.obj("role","hr","text",q));J.put(c,"history",h);J.put(c,"state","等待本人处理");J.put(s,"chats",chats);
         });app.changed();
         JSONObject c=app.item("chats",id);if(c.optBoolean("waiting")||c.optBoolean("takeover")||!c.optBoolean("contextConfirmed")){Notices.attention(app,"请核对 HR 上下文或补充答案");return;}app.engine.reply(id);
@@ -118,7 +118,9 @@ public final class BossService extends AccessibilityService {
             if(input==null||button==null||!BossTree.text(input).isEmpty()){app.stop(RunGate.State.WAITING,"输入框不为空或发送控件不匹配，已暂停");return;}
             if(!rate()){app.main.postDelayed(()->{if(app.gate.valid(epoch))send(id,confirmed);},interval());return;}
             int previous=Collections.frequency(t.values(selector("outgoing")),text);
-            String purpose=chat.optBoolean("edited")?"answer":chat.optBoolean("holding")?"holding":"reply",task=Ids.hash(id,mid,purpose);final boolean[] ok={false};
+            // Until BOSS exposes a stable message ID, identical text is handled conservatively.
+            // A scroll/restart must not manufacture a fresh send task for the same question.
+            String purpose=chat.optBoolean("edited")?"answer":chat.optBoolean("holding")?"holding":"reply",task=Ids.hash(id,chat.optString("lastHr"),purpose);final boolean[] ok={false};
             app.vault.update(s->ok[0]=Ledger.reserve(s,task,"message",id,System.currentTimeMillis(),0,30));
             if(!ok[0]){app.stop(RunGate.State.WAITING,"这条回复已处理或结果待核对，不会重复发送");return;}
             sending=true;typingUntil=SystemClock.elapsedRealtime()+5000;

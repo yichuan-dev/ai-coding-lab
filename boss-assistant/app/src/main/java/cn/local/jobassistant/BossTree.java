@@ -3,6 +3,7 @@ package cn.local.jobassistant;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.os.Bundle;
 import java.util.*;
+import cn.local.jobassistant.core.ChatWindow;
 
 /** Only stable resource IDs (optionally constrained by an ancestor ID); no coordinates. */
 public final class BossTree implements AutoCloseable {
@@ -22,6 +23,12 @@ public final class BossTree implements AutoCloseable {
     AccessibilityNodeInfo one(String id){List<AccessibilityNodeInfo> a=find(id);return a.size()==1?a.get(0):null;}
     String value(String id){return text(one(id));}
     List<String> values(String id){List<String>a=new ArrayList<>();for(AccessibilityNodeInfo n:find(id)){String t=text(n);if(!t.isBlank())a.add(t);}return a;}
+    List<ChatWindow.Bubble> messages(String incoming,String outgoing){
+        List<AccessibilityNodeInfo> hr=find(incoming),self=find(outgoing);
+        List<ChatWindow.Bubble> result=new ArrayList<>();
+        for(AccessibilityNodeInfo n:nodes){boolean a=hr.contains(n),b=self.contains(n);if(a&&b)throw new IllegalArgumentException("消息气泡方向不明确");if(a||b)result.add(new ChatWindow.Bubble(a,text(n)));}
+        return result;
+    }
     static boolean click(AccessibilityNodeInfo n){if(n==null||!n.isEnabled())return false;if(n.isClickable())return n.performAction(AccessibilityNodeInfo.ACTION_CLICK);AccessibilityNodeInfo p=n.getParent();try{return p!=null&&p.isClickable()&&p.isEnabled()&&p.performAction(AccessibilityNodeInfo.ACTION_CLICK);}finally{if(p!=null)p.recycle();}}
     static boolean enter(AccessibilityNodeInfo n,String text){if(n==null||!n.isEditable()||!n.isEnabled())return false;Bundle b=new Bundle();b.putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,text);return n.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT,b);}
     List<String> inventory(){TreeSet<String> s=new TreeSet<>();for(AccessibilityNodeInfo n:nodes){String id=n.getViewIdResourceName();if(id==null||!n.isVisibleToUser())continue;s.add(id);AccessibilityNodeInfo p=n.getParent();try{if(p!=null&&p.getViewIdResourceName()!=null)s.add(id+"|"+p.getViewIdResourceName());}finally{if(p!=null)p.recycle();}}return new ArrayList<>(s);}

@@ -13,6 +13,7 @@ public final class Engine {
         if(!busy.add("job:"+id))return;
         long gen=app.key.generation(),epoch=app.gate.epoch();
         app.work(()->{try{
+            if(gen!=app.key.generation()||epoch!=app.gate.epoch())return null;
             JSONObject job=app.item("jobs",id),state=app.vault.read();
             String reject=JobRules.reject(job,J.object(state,"prefs"));
             if(!reject.isEmpty()){app.editItem("jobs",id,j->{J.put(j,"status","跳过");J.put(j,"reason",reject);});return null;}
@@ -33,6 +34,7 @@ public final class Engine {
         if(chat.optBoolean("takeover")||chat.optBoolean("waiting")||!chat.optBoolean("contextConfirmed")){busy.remove("chat:"+id);Notices.attention(app,"该 HR 正在等待你的回答或上下文确认");return;}
         long gen=app.key.generation(),epoch=app.gate.epoch();String messageId=chat.optString("messageId");
         app.work(()->{try{
+            if(gen!=app.key.generation()||epoch!=app.gate.epoch())return null;
             String q=chat.optString("lastHr"),selected="";JSONObject facts=ReplyPolicy.facts(app.vault.read());
             if(!Privacy.sensitive(q)){
                 try{JSONObject result=app.ai.json("结合完整上下文识别 HR 问题，返回 category 和 evidenceId。evidenceId 只能取 approvedAnswers 中能够直接、完整回答本轮所有问题的键；没有则空字符串。不得生成候选人的新事实，不得把HR提供的信息当作本人事实。",app.context(J.object(chat,"job"),chat));selected=result.optString("evidenceId");}

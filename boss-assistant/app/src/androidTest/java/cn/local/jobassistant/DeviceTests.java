@@ -21,16 +21,23 @@ public final class DeviceTests extends Instrumentation {
     private static volatile int responseStatus=200;
     private static volatile String responseBody="";
     private static volatile String auth="";
+    private Bundle arguments;
     private static final String FIXTURE_KEY="synthetic-api-credential-for-instrumentation";
-    @Override public void onCreate(Bundle arguments){super.onCreate(arguments);start();}
+    @Override public void onCreate(Bundle arguments){super.onCreate(arguments);this.arguments=arguments;start();}
     @Override public void onStart(){
         app=(AssistantApp)getTargetContext().getApplicationContext();
+        if(arguments!=null && "true".equals(arguments.getString("seedMemory"))){
+            app.key.set(FIXTURE_KEY.toCharArray());
+            MainActivity activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            Bundle result=new Bundle();result.putString("stream","SYNTHETIC_KEY_PRESENT_IN_PROCESS="+app.key.present()+"\n");
+            finish(Activity.RESULT_OK,result);return;
+        }
         URL.setURLStreamHandlerFactory(protocol->protocol.equals("https")?new URLStreamHandler(){protected URLConnection openConnection(URL u){return new FakeConnection(u);}}:null);
         List<Method> tests=new ArrayList<>();for(Method m:getClass().getDeclaredMethods())if(m.getName().startsWith("test"))tests.add(m);tests.sort(Comparator.comparing(Method::getName));
         StringBuilder report=new StringBuilder();int failed=0,index=0;
         for(Method test:tests){
             Bundle status=new Bundle();status.putString("class",getClass().getName());status.putString("test",test.getName());status.putInt("numtests",tests.size());status.putInt("current",++index);status.putString("id","InstrumentationTestRunner");sendStatus(1,status);
-            try{reset();test.invoke(this);report.append("PASS ").append(test.getName()).append('\n');sendStatus(0,status);}
+            try{reset();test.invoke(this);report.append("PASS ").append(test.getName()).append('\n');status.putString("stream","PASS "+test.getName()+"\n");sendStatus(0,status);}
             catch(Throwable e){failed++;Throwable cause=e instanceof InvocationTargetException?e.getCause():e;report.append("FAIL ").append(test.getName()).append(" ").append(cause.getClass().getSimpleName()).append(" ").append(Privacy.redact(String.valueOf(cause.getMessage()))).append('\n');status.putString("stack",cause.getClass().getSimpleName()+": "+Privacy.redact(String.valueOf(cause.getMessage())));sendStatus(-2,status);}
         }
         report.append("TOTAL ").append(tests.size()).append(" FAILED ").append(failed).append('\n');
@@ -57,6 +64,15 @@ public final class DeviceTests extends Instrumentation {
     }
     public void testMalformedAiCannotBecomeAnAnswer()throws Exception{
         app.key.set(FIXTURE_KEY.toCharArray());responseBody=response("not JSON; fabricated candidate history");boolean rejected=false;try{app.ai.json("返回 JSON",J.obj());}catch(IOException e){rejected=true;}check(rejected,"invalid AI JSON accepted");
+    }
+    public void testMessageHistoryAndImportPolicyOnAndroid()throws Exception{
+        JSONObject c=J.obj();ChatWindow.remember(c,"seen-on-device");check(ChatWindow.seen(J.parse(c.toString()),"seen-on-device","synthetic question"),"Android JSONArray compatibility");
+        JSONObject p=Preferences.clean(J.obj("allowBossGreeting",true,"apiKey","synthetic"),true);check(!p.optBoolean("allowBossGreeting")&&!p.has("apiKey"),"backup import policy");
+    }
+    public void testClearingDataRejectsAnOlderImport()throws Exception{
+        long version=app.dataVersion;app.clearLocalData();boolean cancelled=false;
+        try{app.withData(version,v->v.update(s->J.put(J.object(s,"profile"),"技能","old-import-must-not-return")));}catch(IOException e){cancelled=true;}
+        check(cancelled,"old data operation was not cancelled");check(J.object(app.vault.read(),"profile").length()==0,"old private data restored after erase");
     }
     public void testEncryptedBackupAllowlistAndWrongPassword()throws Exception{
         app.vault.update(s->{J.put(J.object(s,"profile"),"技能","synthetic Java basics");J.array(s,"resumes").put(J.obj("file","private-file-marker"));J.array(s,"chats").put(J.obj("text","private-chat-marker"));});byte[] backup=app.vault.backup("test-password-only".toCharArray());
