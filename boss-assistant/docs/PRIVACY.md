@@ -2,7 +2,7 @@
 
 ## DeepSeek API Key
 
-API Key 只位于 `SessionKey` 的进程内存中；没有数据库、SharedPreferences、DataStore、文件或云端保存路径。完全退出或被系统结束进程后重新输入。后台超过 30 分钟也会清除，使用单调时钟判断。输入框禁止保存状态及自动填充，默认隐藏字符；所有页面启用 FLAG_SECURE。
+API Key 只位于 `SessionKey` 的进程内存中；没有数据库、SharedPreferences、DataStore、文件或云端保存路径。完全退出或被系统结束进程后重新输入。关闭任务后新开 Activity 会清除旧 Key 与发送授权，即使旧进程仍然存活；结束 Activity 也主动清除。后台超过 30 分钟同样清除，使用单调时钟判断。输入框禁止保存状态及自动填充，默认隐藏字符；所有页面启用 FLAG_SECURE。
 
 每次 HTTP 请求临时构造 Authorization，禁用重定向与缓存；没有 HTTP 日志和崩溃上报 SDK。可控的 char[]/byte[] 在用完后覆盖清除；Android/Java 网络栈内部短暂字符串只能交给系统回收，不承诺对 RAM 物理取证完全清零。
 

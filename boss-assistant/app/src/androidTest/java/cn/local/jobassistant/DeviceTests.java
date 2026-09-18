@@ -64,6 +64,10 @@ public final class DeviceTests extends Instrumentation {
         MainActivity activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         check(!app.key.present(),"fresh launch reused old process key");check(app.gate.state()==RunGate.State.STOPPED,"fresh launch retained send authority");
         runOnMainSync(()->{app.key.set(FIXTURE_KEY.toCharArray());activity.finishAndRemoveTask();});waitForIdleSync();
+        // Task removal is asynchronous; an idle main queue does not mean onDestroy ran yet.
+        long deadline=SystemClock.uptimeMillis()+15000;
+        while(!activity.isDestroyed()&&SystemClock.uptimeMillis()<deadline)SystemClock.sleep(50);
+        check(activity.isDestroyed(),"task removal did not destroy activity");runOnMainSync(()->{});
         check(!app.key.present(),"finishing task retained key without running service");
     }
     public void testHttpFailuresAndTimeoutAreHandled()throws Exception{

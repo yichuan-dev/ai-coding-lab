@@ -1,0 +1,58 @@
+{
+  "date": "2026-09-18",
+  "release_source_commit": "f1d04e2158702649e0cd213e7ebfde92ea0e9179",
+  "apk": {
+    "name": "BossAssistant-0.1.0.apk",
+    "bytes": 8495814,
+    "sha256": "54b8f804654a7ea2d60f405e6a42d8b9c0302851ece23accadbf6c1d657029f7",
+    "certificate_sha256": "5281280ff3237324d7d320f771a8205ca0ac1f0a0b9aafee0ce7a8ca4a25627a"
+  },
+  "core": [
+    {
+      "name": "cn.local.jobassistant.core.HrScenariosTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "name": "cn.local.jobassistant.core.RecoveryTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "name": "cn.local.jobassistant.core.SafetyTest",
+      "tests": 31,
+      "failures": 0,
+      "errors": 0
+    }
+  ],
+  "device": {
+    "api": 28,
+    "abi": "x86_64",
+    "tests": 11,
+    "failures": 0,
+    "cases": [
+      "testAndroidScreensAndSecureWindow",
+      "testClearingDataRejectsAnOlderImport",
+      "testDocxParsingAndExternalEntityRejection",
+      "testEncryptedBackupAllowlistAndWrongPassword",
+      "testEncryptedVaultRoundTripAndTamper",
+      "testFreshActivityRejectsAnOldProcessKey",
+      "testHttpFailuresAndTimeoutAreHandled",
+      "testKeyRequestAndNoPersistence",
+      "testMalformedAiCannotBecomeAnAnswer",
+      "testMessageHistoryAndImportPolicyOnAndroid",
+      "testPdfTextExtraction"
+    ]
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 7
+  },
+  "release_install": "Success",
+  "release_launch": "ok",
+  "ci": "https://github.com/yichuan-dev/ai-coding-lab/actions/runs/35352858524",
+  "real_boss_verified": false,
+  "real_ai_key_verified": false
+}
