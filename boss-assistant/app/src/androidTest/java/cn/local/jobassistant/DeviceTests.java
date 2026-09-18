@@ -27,8 +27,8 @@ public final class DeviceTests extends Instrumentation {
     @Override public void onStart(){
         app=(AssistantApp)getTargetContext().getApplicationContext();
         if(arguments!=null && "true".equals(arguments.getString("seedMemory"))){
-            app.key.set(FIXTURE_KEY.toCharArray());
             MainActivity activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            runOnMainSync(()->{app.key.set(FIXTURE_KEY.toCharArray());activity.show("home");});waitForIdleSync();
             Bundle result=new Bundle();result.putString("stream","SYNTHETIC_KEY_PRESENT_IN_PROCESS="+app.key.present()+"\n");
             finish(Activity.RESULT_OK,result);return;
         }
@@ -59,6 +59,13 @@ public final class DeviceTests extends Instrumentation {
         check(Ledger.usage(app.vault.read(),System.currentTimeMillis()).optInt("calls")==1,"AI count");check(Ledger.usage(app.vault.read(),System.currentTimeMillis()).optInt("tokens")==15,"tokens");app.key.clear();check(!app.key.present(),"key survived clearing");
     }
     private void scan(File file)throws Exception{if(file.isDirectory()){File[] children=file.listFiles();if(children!=null)for(File f:children)scan(f);}else if(file.length()<10*1024*1024)check(!new String(Files.readAllBytes(file.toPath()),StandardCharsets.ISO_8859_1).contains(FIXTURE_KEY),"credential persisted to file");}
+    public void testFreshActivityRejectsAnOldProcessKey()throws Exception{
+        app.key.set(FIXTURE_KEY.toCharArray());app.gate.start(true);
+        MainActivity activity=(MainActivity)startActivitySync(new Intent(getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+        check(!app.key.present(),"fresh launch reused old process key");check(app.gate.state()==RunGate.State.STOPPED,"fresh launch retained send authority");
+        runOnMainSync(()->{app.key.set(FIXTURE_KEY.toCharArray());activity.finishAndRemoveTask();});waitForIdleSync();
+        check(!app.key.present(),"finishing task retained key without running service");
+    }
     public void testHttpFailuresAndTimeoutAreHandled()throws Exception{
         app.key.set(FIXTURE_KEY.toCharArray());for(int status:new int[]{401,403,402,429,500,0}){responseStatus=status;responseBody=FIXTURE_KEY;boolean failed=false;try{app.ai.json("返回 JSON",J.obj());}catch(Exception e){failed=true;check(!String.valueOf(e.getMessage()).contains(FIXTURE_KEY),"error revealed key");}check(failed,"HTTP error accepted");}
     }

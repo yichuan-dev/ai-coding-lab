@@ -26,10 +26,10 @@ public final class MainActivity extends Activity {
     private char[] backupPassword;
     private static final int IMPORT_RESUME=10,EXPORT_BACKUP=11,IMPORT_BACKUP=12;
     private final BroadcastReceiver changes=new BroadcastReceiver(){public void onReceive(Context c,Intent i){refreshHeader();}};
-    @Override public void onCreate(Bundle b){super.onCreate(b);app=(AssistantApp)getApplication();getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);show(app.key.present()?"home":"key");}
+    @Override public void onCreate(Bundle b){super.onCreate(b);app=(AssistantApp)getApplication();if(b==null){app.key.clear();app.stop(RunGate.State.STOPPED,"");}getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);show(app.key.present()?"home":"key");}
     @Override protected void onStart(){super.onStart();IntentFilter f=new IntentFilter(getPackageName()+".CHANGED");if(Build.VERSION.SDK_INT>=33)registerReceiver(changes,f,Context.RECEIVER_NOT_EXPORTED);else registerReceiver(changes,f);}
     @Override protected void onStop(){unregisterReceiver(changes);super.onStop();}
-    @Override protected void onDestroy(){if(backupPassword!=null)Arrays.fill(backupPassword,'\0');super.onDestroy();}
+    @Override protected void onDestroy(){if(backupPassword!=null)Arrays.fill(backupPassword,'\0');if(isFinishing()){app.key.clear();stopAll();}super.onDestroy();}
     @Override public void onBackPressed(){if(!screen.equals("home"))show("home");else new AlertDialog.Builder(this).setTitle("退出求职助手？").setMessage("停止任务并清除内存中的 API Key。BOSS 官方 APP 登录状态需在 BOSS 内退出。").setNegativeButton("留在 APP",null).setPositiveButton("退出并清除 Key",(d,w)->{app.key.clear();stopAll();finishAndRemoveTask();}).show();}
     public void show(String page){
         screen=page;root=Ui.column(this);root.setBackgroundColor(Ui.BG);root.setPadding(Ui.dp(this,14),0,Ui.dp(this,14),0);
