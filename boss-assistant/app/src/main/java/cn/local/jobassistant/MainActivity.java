@@ -34,7 +34,7 @@ public final class MainActivity extends Activity {
     public void show(String page){
         screen=page;root=Ui.column(this);root.setBackgroundColor(Ui.BG);root.setPadding(Ui.dp(this,14),0,Ui.dp(this,14),0);
         root.setOnApplyWindowInsetsListener((v,insets)->{v.setPadding(Ui.dp(this,14),insets.getSystemWindowInsetTop(),Ui.dp(this,14),insets.getSystemWindowInsetBottom());return insets;});
-        TextView brand=Ui.text(this,"求职助手  /  BOSS",17,Ui.TEAL);brand.setTypeface(null,1);root.addView(brand);
+        TextView brand=Ui.text(this,"求职助手  /  BOSS",17,Ui.TEAL);brand.setTypeface(null,android.graphics.Typeface.BOLD);root.addView(brand);
         LinearLayout bar=new LinearLayout(this);bar.setGravity(Gravity.CENTER_VERTICAL);stateText=Ui.text(this,app.status(),13,Ui.INK);bar.addView(stateText,new LinearLayout.LayoutParams(0,-2,1));Button stop=new Button(this);stop.setText("立即停止");stop.setTextColor(0xffb3261e);stop.setAllCaps(false);stop.setOnClickListener(v->stopAll());bar.addView(stop);root.addView(bar);
         noticeText=Ui.text(this,app.notice,13,Ui.MUTED);root.addView(noticeText);noticeText.setVisibility(app.notice.isBlank()?View.GONE:View.VISIBLE);
         ScrollView scroll=new ScrollView(this);scroll.setFillViewport(true);body=Ui.column(this);scroll.addView(body);root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
